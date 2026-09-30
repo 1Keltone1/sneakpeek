@@ -1,10 +1,14 @@
 import { useRef, useEffect, useState } from 'react';
 import { usePoseTracking } from '../hooks/usePoseTracking';
-import { DebugOverlay } from './DebugOverlay'; 
+import { DebugOverlay } from './DebugOverlay';
+import type { DebugOverlayHandle } from './DebugOverlay';
+import { ScreenshotCapture } from './ScreenshotCapture';
 import './ARCamera.css';
 
 export function ARCamera() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const debugOverlayRef = useRef<DebugOverlayHandle>(null); // ← добавили
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,30 +51,16 @@ export function ARCamera() {
     };
   }, []);
 
-  // Отладочный вывод координат стопы (временно)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const lm = landmarksRef.current;
-      if (lm) {
-        console.log('Левая лодыжка:', lm[27]);
-        console.log('Правая лодыжка:', lm[28]);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [landmarksRef]);
-
   return (
     <div className="ar-camera-container">
-      <video
-        ref={videoRef}
-        className="ar-camera-video"
-        playsInline
-        muted
-      />
+      <video ref={videoRef} className="ar-camera-video" playsInline muted />
 
       {isReady && (
-        <DebugOverlay landmarksRef={landmarksRef} videoRef={videoRef} />
+        <DebugOverlay
+          ref={debugOverlayRef}
+          landmarksRef={landmarksRef}
+          videoRef={videoRef}
+        />
       )}
 
       {isLoading && (
@@ -102,6 +92,13 @@ export function ARCamera() {
           <span className="ar-camera-status-dot" />
           Трекинг активен
         </div>
+      )}
+
+      {isReady && (
+        <ScreenshotCapture
+          videoRef={videoRef}
+          debugOverlayRef={debugOverlayRef}
+        />
       )}
     </div>
   );
