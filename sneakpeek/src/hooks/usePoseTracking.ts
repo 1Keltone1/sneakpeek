@@ -1,0 +1,110 @@
+import { useEffect, useRef, useState } from 'react';
+import { PoseLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
+import type { Landmark } from '../types/landmarks';
+
+interface UsePoseTrackingResult {
+  landmarksRef: React.MutableRefObject<Landmark[] | null>;
+  isReady: boolean;
+  error: string | null;
+}
+
+export function usePoseTracking(
+  videoRef: React.RefObject<HTMLVideoElement | null>
+): UsePoseTrackingResult {
+  // "Горячие" данные — храним в ref, чтобы не вызывать ре-рендеры
+  const landmarksRef = useRef<Landmark[] | null>(null);
+
+  // "Холодные" данные — состояние загрузки/ошибки
+  const [isReady, setIsReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const landmarkerRef = useRef<PoseLandmarker | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function initMediaPipe() {
+      try {
+        // 1. Загружаем WASM-файлы MediaPipe
+        const vision = await FilesetResolver.forVisionTasks(
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
+        );
+
+        // 2. Создаём PoseLandmarker
+        const landmarker = await PoseLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath:
+              'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+            delegate: 'GPU', // используем GPU для производительности
+          },
+          runningMode: 'VIDEO',
+          numPoses: 1, // отслеживаем одного человека
+        });
+
+        if (isCancelled) {
+          landmarker.close();
+          return;
+        }
+
+        landmarkerRef.current = landmarker;
+        setIsReady(true);
+      } catch (err) {
+        console.error('Ошибка инициализации MediaPipe:', err);
+        setError('Не удалось загрузить модель трекинга.');
+      }
+    }
+
+    initMediaPipe();
+
+    return () => {
+      isCancelled = true;
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (landmarkerRef.current) {
+        landmarkerRef.current.close();
+      }
+    };
+  }, []);
+
+  // Цикл обработки видеокадров
+  useEffect(() => {
+    if (!isReady) return;
+
+    let lastVideoTime = -1;
+
+    function processFrame() {
+      const video = videoRef.current;
+      const landmarker = landmarkerRef.current;
+
+      if (video && landmarker && video.readyState >= 2) {
+        const currentTime = video.currentTime;
+
+        // Обрабатываем только новые кадры
+        if (currentTime !== lastVideoTime) {
+          lastVideoTime = currentTime;
+
+          const result = landmarker.detectForVideo(video, performance.now());
+
+          if (result.landmarks && result.landmarks.length > 0) {
+            // Сохраняем координаты в ref — без ре-рендера!
+            landmarksRef.current = result.landmarks[0] as Landmark[];
+          }
+        }
+      }
+
+      animationFrameRef.current = requestAnimationFrame(processFrame);
+    }
+
+    animationFrameRef.current = requestAnimationFrame(processFrame);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [isReady, videoRef]);
+
+  return { landmarksRef, isReady, error };
+}
