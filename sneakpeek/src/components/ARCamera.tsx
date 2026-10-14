@@ -4,6 +4,7 @@ import { DebugOverlay } from './DebugOverlay';
 import type { DebugOverlayHandle } from './DebugOverlay';
 import { ScreenshotCapture } from './ScreenshotCapture';
 import './ARCamera.css';
+import { ThreeScene } from './ThreeScene'; 
 
 export function ARCamera() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -99,6 +100,10 @@ export function ARCamera() {
           videoRef={videoRef}
           debugOverlayRef={debugOverlayRef}
         />
+      )}
+
+      {isReady && (
+        <ThreeScene landmarksRef={landmarksRef} />
       )}
     </div>
   );

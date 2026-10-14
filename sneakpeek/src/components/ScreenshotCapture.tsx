@@ -34,6 +34,8 @@ export function ScreenshotCapture({
   }, []);
 
   const startCapture = () => {
+    console.log('Кнопка нажата!');
+    setState('countdown');
     setState('countdown');
     setCountdown(COUNTDOWN_SECONDS);
 
