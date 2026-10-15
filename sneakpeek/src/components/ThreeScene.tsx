@@ -54,8 +54,6 @@ export const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             poseDataRef={poseDataRef}
             videoRef={videoRef}
             ankleIndex={POSE_LANDMARKS.RIGHT_ANKLE}
-            heelIndex={POSE_LANDMARKS.RIGHT_HEEL}
-            kneeIndex={POSE_LANDMARKS.RIGHT_KNEE}
             label="Правая нога"
             forcedRotation={forcedRotation}
           />
@@ -64,8 +62,6 @@ export const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             poseDataRef={poseDataRef}
             videoRef={videoRef}
             ankleIndex={POSE_LANDMARKS.LEFT_ANKLE}
-            heelIndex={POSE_LANDMARKS.LEFT_HEEL}
-            kneeIndex={POSE_LANDMARKS.LEFT_KNEE}
             label="Левая нога"
             forcedRotation={forcedRotation}
           />

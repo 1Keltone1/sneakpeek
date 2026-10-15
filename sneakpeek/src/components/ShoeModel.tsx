@@ -8,8 +8,6 @@ interface ShoeModelProps {
   poseDataRef: React.MutableRefObject<PoseData | null>;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   ankleIndex: number;
-  heelIndex: number;
-  kneeIndex: number;
   label: string;
   forcedRotation: number;
 }
@@ -23,8 +21,6 @@ export function ShoeModel({
   poseDataRef,
   videoRef,
   ankleIndex,
-  heelIndex,
-  kneeIndex,
   label,
   forcedRotation,
 }: ShoeModelProps) {
