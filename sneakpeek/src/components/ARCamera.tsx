@@ -2,18 +2,24 @@ import { useRef, useEffect, useState } from 'react';
 import { usePoseTracking } from '../hooks/usePoseTracking';
 import { DebugOverlay } from './DebugOverlay';
 import type { DebugOverlayHandle } from './DebugOverlay';
+import { ThreeScene } from './ThreeScene';
+import type { ThreeSceneHandle } from './ThreeScene';
 import { ScreenshotCapture } from './ScreenshotCapture';
 import './ARCamera.css';
-import { ThreeScene } from './ThreeScene'; 
+
+// Флаг отладки: true — показывать точки трекинга, false — скрыть
+const DEBUG_MODE = false;
 
 export function ARCamera() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const debugOverlayRef = useRef<DebugOverlayHandle>(null); // ← добавили
+  const debugOverlayRef = useRef<DebugOverlayHandle>(null);
+  const threeSceneRef = useRef<ThreeSceneHandle>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forcedRotation, setForcedRotation] = useState<number>(0);
 
-  const { landmarksRef, isReady, error: trackingError } = usePoseTracking(videoRef);
+  const { poseDataRef, isReady, error: trackingError } = usePoseTracking(videoRef);
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -46,9 +52,7 @@ export function ARCamera() {
     startCamera();
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
+      if (stream) stream.getTracks().forEach((track) => track.stop());
     };
   }, []);
 
@@ -56,54 +60,49 @@ export function ARCamera() {
     <div className="ar-camera-container">
       <video ref={videoRef} className="ar-camera-video" playsInline muted />
 
-      {isReady && (
+      {/* Отладочный оверлей — только если DEBUG_MODE включён */}
+      {DEBUG_MODE && isReady && (
         <DebugOverlay
           ref={debugOverlayRef}
-          landmarksRef={landmarksRef}
+          poseDataRef={poseDataRef}
           videoRef={videoRef}
         />
       )}
 
+      {isReady && (
+        <ThreeScene
+          ref={threeSceneRef}
+          poseDataRef={poseDataRef}
+          videoRef={videoRef}
+          forcedRotation={forcedRotation}
+        />
+      )}
+
       {isLoading && (
-        <div className="ar-camera-overlay">
-          <p>Загрузка камеры...</p>
-        </div>
+        <div className="ar-camera-overlay"><p>Загрузка камеры...</p></div>
       )}
-
       {error && (
-        <div className="ar-camera-overlay">
-          <p className="ar-camera-error">{error}</p>
-        </div>
+        <div className="ar-camera-overlay"><p className="ar-camera-error">{error}</p></div>
       )}
-
       {!isReady && !error && !isLoading && (
-        <div className="ar-camera-overlay">
-          <p>Загрузка модели трекинга...</p>
-        </div>
+        <div className="ar-camera-overlay"><p>Загрузка модели трекинга...</p></div>
       )}
-
       {trackingError && (
-        <div className="ar-camera-overlay">
-          <p className="ar-camera-error">{trackingError}</p>
-        </div>
+        <div className="ar-camera-overlay"><p className="ar-camera-error">{trackingError}</p></div>
       )}
-
       {isReady && (
         <div className="ar-camera-status">
           <span className="ar-camera-status-dot" />
           Трекинг активен
         </div>
       )}
-
       {isReady && (
         <ScreenshotCapture
           videoRef={videoRef}
           debugOverlayRef={debugOverlayRef}
+          threeSceneRef={threeSceneRef}
+          onRotationChange={setForcedRotation}
         />
-      )}
-
-      {isReady && (
-        <ThreeScene landmarksRef={landmarksRef} />
       )}
     </div>
   );

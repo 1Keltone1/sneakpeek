@@ -1,49 +1,100 @@
 import { useState, useRef, useEffect } from 'react';
 import { captureFrame } from '../utils/captureFrame';
 import type { DebugOverlayHandle } from './DebugOverlay';
+import type { ThreeSceneHandle } from './ThreeScene';
 import './ScreenshotCapture.css';
 
 interface ScreenshotCaptureProps {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   debugOverlayRef: React.RefObject<DebugOverlayHandle | null>;
+  threeSceneRef: React.RefObject<ThreeSceneHandle | null>;
+  onRotationChange?: (rotation: number) => void;
 }
 
-type CaptureState = 'idle' | 'countdown' | 'capturing' | 'done';
+type CaptureState = 'idle' | 'countdown' | 'done';
+
+const STEPS = [
+  { rotation: 0, hint: 'Прямо' },
+  { rotation: 90, hint: 'Правый поворот' },
+  { rotation: -90, hint: 'Левый поворот' },
+];
+
+const COUNTDOWN_SECONDS = 5;
 
 export function ScreenshotCapture({
   videoRef,
-  debugOverlayRef,
+  threeSceneRef,
+  onRotationChange,
 }: ScreenshotCaptureProps) {
   const [state, setState] = useState<CaptureState>('idle');
   const [countdown, setCountdown] = useState(0);
+  const [currentHint, setCurrentHint] = useState('');
+  const [stepIndex, setStepIndex] = useState(0);
   const [screenshots, setScreenshots] = useState<string[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
 
+  const isRunningRef = useRef(false);
   const countdownTimerRef = useRef<number | null>(null);
-  const captureTimerRef = useRef<number | null>(null);
-
-  const SHOTS_COUNT = 3;
-  const SHOT_INTERVAL = 1000;
-  const COUNTDOWN_SECONDS = 5;
+  const capturedRef = useRef<string[]>([]);
+  const stepIndexRef = useRef(0);
 
   useEffect(() => {
     return () => {
-      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
-      if (captureTimerRef.current) clearTimeout(captureTimerRef.current);
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+      }
     };
   }, []);
 
-  const startCapture = () => {
-    console.log('Кнопка нажата!');
-    setState('countdown');
+  const startScenario = () => {
+    if (isRunningRef.current) return;
+
+    isRunningRef.current = true;
+    capturedRef.current = [];
+    stepIndexRef.current = 0;
+    setScreenshots([]);
+    setStepIndex(0);
+
+    runStep(0);
+  };
+
+  const runStep = (index: number) => {
+    if (index >= STEPS.length) {
+      setState('done');
+      onRotationChange?.(0);
+      isRunningRef.current = false;
+      return;
+    }
+
+    stepIndexRef.current = index;
+    const step = STEPS[index];
+
+    setCurrentHint(step.hint);
+    setStepIndex(index);
     setState('countdown');
     setCountdown(COUNTDOWN_SECONDS);
+
+    onRotationChange?.(step.rotation);
+
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
 
     countdownTimerRef.current = window.setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
-          startActualCapture();
+          if (countdownTimerRef.current) {
+            clearInterval(countdownTimerRef.current);
+            countdownTimerRef.current = null;
+          }
+
+          takeScreenshot();
+
+          window.setTimeout(() => {
+            runStep(index + 1);
+          }, 1000);
+
           return 0;
         }
         return prev - 1;
@@ -51,49 +102,26 @@ export function ScreenshotCapture({
     }, 1000);
   };
 
-  const startActualCapture = () => {
-    setState('capturing');
-    setScreenshots([]);
-    setCurrentIndex(0);
-
+  const takeScreenshot = () => {
     const video = videoRef.current;
-    if (!video) {
-      setState('idle');
-      return;
+    if (!video) return;
+
+    try {
+      const threeCanvas = threeSceneRef.current?.getCanvas() ?? null;
+
+      // ВАЖНО: не передаём debugOverlayCanvas — точки не попадут на скриншот
+      const dataUrl = captureFrame(video, null, threeCanvas);
+      capturedRef.current.push(dataUrl);
+      setScreenshots([...capturedRef.current]);
+    } catch (err) {
+      console.error('Ошибка захвата:', err);
     }
-
-    const captured: string[] = [];
-
-    const takeShot = (shotIndex: number) => {
-      if (shotIndex >= SHOTS_COUNT) {
-        setState('done');
-        return;
-      }
-
-      try {
-        const overlayCanvas = debugOverlayRef.current?.getCanvas() ?? null;
-        const dataUrl = captureFrame(video, overlayCanvas);
-        captured.push(dataUrl);
-        setScreenshots([...captured]);
-        setCurrentIndex(shotIndex + 1);
-      } catch (err) {
-        console.error('Ошибка захвата кадра:', err);
-        setState('idle');
-        return;
-      }
-
-      captureTimerRef.current = window.setTimeout(() => {
-        takeShot(shotIndex + 1);
-      }, SHOT_INTERVAL);
-    };
-
-    takeShot(0);
   };
 
   const downloadScreenshot = (dataUrl: string, index: number) => {
     const link = document.createElement('a');
     link.href = dataUrl;
-    link.download = `sneakpeek-${Date.now()}-${index + 1}.png`;
+    link.download = `sneakpeek-${STEPS[index]?.hint ?? index + 1}-${Date.now()}.png`;
     link.click();
   };
 
@@ -104,32 +132,37 @@ export function ScreenshotCapture({
   };
 
   const reset = () => {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    isRunningRef.current = false;
+    capturedRef.current = [];
+    stepIndexRef.current = 0;
+
     setState('idle');
     setScreenshots([]);
-    setCurrentIndex(0);
+    setStepIndex(0);
+    setCurrentHint('');
+    setCountdown(0);
+    onRotationChange?.(0);
   };
 
   return (
     <>
       {state === 'idle' && (
-        <button className="screenshot-button" onClick={startCapture}>
+        <button className="screenshot-button" onClick={startScenario}>
           📸 Сделать скриншоты
         </button>
       )}
 
       {state === 'countdown' && (
         <div className="screenshot-countdown">
+          <div className="screenshot-step-indicator">
+            Шаг {stepIndex + 1} из {STEPS.length}
+          </div>
           <span className="screenshot-countdown-number">{countdown}</span>
-          <p className="screenshot-countdown-hint">
-            Отойдите и встаньте так, чтобы были видны ноги и лицо
-          </p>
-        </div>
-      )}
-
-      {state === 'capturing' && (
-        <div className="screenshot-capturing">
-          <span className="screenshot-capturing-dot" />
-          Снимок {currentIndex} из {SHOTS_COUNT}
+          <p className="screenshot-countdown-hint">{currentHint}</p>
         </div>
       )}
 
@@ -145,7 +178,10 @@ export function ScreenshotCapture({
           <div className="screenshot-gallery-grid">
             {screenshots.map((dataUrl, index) => (
               <div key={index} className="screenshot-item">
-                <img src={dataUrl} alt={`Снимок ${index + 1}`} />
+                <img src={dataUrl} alt={STEPS[index]?.hint ?? `Снимок ${index + 1}`} />
+                <div className="screenshot-label">
+                  {STEPS[index]?.hint ?? ''}
+                </div>
                 <button
                   className="screenshot-download"
                   onClick={() => downloadScreenshot(dataUrl, index)}

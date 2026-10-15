@@ -1,14 +1,13 @@
 import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { POSE_LANDMARKS } from '../types/landmarks';
-import type { Landmark } from '../types/landmarks';
+import type { PoseData } from '../hooks/usePoseTracking';
 import './DebugOverlay.css';
 
 interface DebugOverlayProps {
-  landmarksRef: React.MutableRefObject<Landmark[] | null>;
+  poseDataRef: React.MutableRefObject<PoseData | null>;
   videoRef: React.RefObject<HTMLVideoElement | null>;
 }
 
-// Что мы "выставляем" наружу через ref
 export interface DebugOverlayHandle {
   getCanvas: () => HTMLCanvasElement | null;
 }
@@ -23,11 +22,10 @@ const POINTS_TO_SHOW = [
 ];
 
 export const DebugOverlay = forwardRef<DebugOverlayHandle, DebugOverlayProps>(
-  function DebugOverlay({ landmarksRef, videoRef }, ref) {
+  function DebugOverlay({ poseDataRef, videoRef }, ref) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const animationFrameRef = useRef<number | null>(null);
 
-    // Отдаём canvas наружу через ref
     useImperativeHandle(ref, () => ({
       getCanvas: () => canvasRef.current,
     }));
@@ -36,7 +34,8 @@ export const DebugOverlay = forwardRef<DebugOverlayHandle, DebugOverlayProps>(
       function draw() {
         const canvas = canvasRef.current;
         const video = videoRef.current;
-        const landmarks = landmarksRef.current;
+        const poseData = poseDataRef.current;
+        const landmarks = poseData?.landmarks ?? null;
 
         if (canvas && video) {
           const rect = video.getBoundingClientRect();
@@ -52,15 +51,9 @@ export const DebugOverlay = forwardRef<DebugOverlayHandle, DebugOverlayProps>(
             if (landmarks && landmarks.length > 0) {
               for (const point of POINTS_TO_SHOW) {
                 const landmark = landmarks[point.index];
-                if (!landmark) continue;
-                if (landmark.visibility < 0.1) continue;
+                if (!landmark || landmark.visibility < 0.5) continue;
 
-                const { x, y } = mapToCanvas(
-                  landmark.x,
-                  landmark.y,
-                  video,
-                  canvas
-                );
+                const { x, y } = mapToCanvas(landmark.x, landmark.y, video, canvas);
 
                 ctx.beginPath();
                 ctx.arc(x, y, 8, 0, 2 * Math.PI);
@@ -82,13 +75,10 @@ export const DebugOverlay = forwardRef<DebugOverlayHandle, DebugOverlayProps>(
       }
 
       animationFrameRef.current = requestAnimationFrame(draw);
-
       return () => {
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       };
-    }, [landmarksRef, videoRef]);
+    }, [poseDataRef, videoRef]);
 
     return <canvas ref={canvasRef} className="debug-overlay-canvas" />;
   }
@@ -112,6 +102,7 @@ function mapToCanvas(
   let offsetX = 0;
   let offsetY = 0;
 
+
   if (videoAspect > containerAspect) {
     scale = containerHeight / videoHeight;
     const scaledWidth = videoWidth * scale;
@@ -122,8 +113,8 @@ function mapToCanvas(
     offsetY = (scaledHeight - containerHeight) / 2;
   }
 
-  const x = normalizedX * videoWidth * scale - offsetX;
-  const y = normalizedY * videoHeight * scale - offsetY;
-
-  return { x, y };
+  return {
+    x: normalizedX * videoWidth * scale - offsetX,
+    y: normalizedY * videoHeight * scale - offsetY,
+  };
 }

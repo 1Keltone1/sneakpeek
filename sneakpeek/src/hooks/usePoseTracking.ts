@@ -3,8 +3,13 @@ import { PoseLandmarker, FilesetResolver } from '@mediapipe/tasks-vision';
 import type { Landmark } from '../types/landmarks';
 import { PoseSmoother } from '../utils/smoothing';
 
+export interface PoseData {
+  landmarks: Landmark[];
+  worldLandmarks: Landmark[];
+}
+
 interface UsePoseTrackingResult {
-  landmarksRef: React.MutableRefObject<Landmark[] | null>;
+  poseDataRef: React.MutableRefObject<PoseData | null>;
   isReady: boolean;
   error: string | null;
 }
@@ -12,20 +17,15 @@ interface UsePoseTrackingResult {
 export function usePoseTracking(
   videoRef: React.RefObject<HTMLVideoElement | null>
 ): UsePoseTrackingResult {
-  // "Горячие" данные — храним в ref, чтобы не вызывать ре-рендеры
-  const landmarksRef = useRef<Landmark[] | null>(null);
-
-  // "Холодные" данные — состояние загрузки/ошибки
+  const poseDataRef = useRef<PoseData | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Все refs — на верхнем уровне, до useEffect
   const landmarkerRef = useRef<PoseLandmarker | null>(null);
   const animationFrameRef = useRef<number | null>(null);
-  const frameCountRef = useRef(0); // ← перенесли сюда
-  const smootherRef = useRef(new PoseSmoother(0.5)); // ← сглаживание
+  const frameCountRef = useRef(0);
+  const smootherRef = useRef(new PoseSmoother(0.4));
 
-  // Инициализация MediaPipe
   useEffect(() => {
     let isCancelled = false;
 
@@ -62,16 +62,11 @@ export function usePoseTracking(
 
     return () => {
       isCancelled = true;
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (landmarkerRef.current) {
-        landmarkerRef.current.close();
-      }
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+      if (landmarkerRef.current) landmarkerRef.current.close();
     };
   }, []);
 
-  // Цикл обработки видеокадров
   useEffect(() => {
     if (!isReady) return;
 
@@ -82,29 +77,43 @@ export function usePoseTracking(
       const landmarker = landmarkerRef.current;
 
       if (video && landmarker && video.readyState >= 2) {
-        // Пропускаем 2 из 3 кадров для производительности на телефоне
         frameCountRef.current++;
         if (frameCountRef.current % 3 === 0) {
           const currentTime = video.currentTime;
 
-          // Обрабатываем только новые кадры
           if (currentTime !== lastVideoTime) {
             lastVideoTime = currentTime;
 
-            // Используем время видео, а не performance.now()
-            const videoTimeMs = currentTime * 1000;
-            const result = landmarker.detectForVideo(video, videoTimeMs);
+            const result = landmarker.detectForVideo(video, currentTime * 1000);
 
             if (result.landmarks && result.landmarks.length > 0) {
-              // Сглаживаем "сырые" координаты
-              const smoothed = smootherRef.current.smooth(
-                result.landmarks[0] as Landmark[]
-              );
-              landmarksRef.current = smoothed;
+              const rawLandmarks = result.landmarks[0] as Landmark[];
+
+              // Проверяем, что точки стопы в допустимом диапазоне [0, 1]
+              const leftAnkle = rawLandmarks[27];
+              const rightAnkle = rawLandmarks[28];
+
+              const isValid =
+                leftAnkle && rightAnkle &&
+                leftAnkle.x >= 0 && leftAnkle.x <= 1 &&
+                leftAnkle.y >= 0 && leftAnkle.y <= 1 &&
+                rightAnkle.x >= 0 && rightAnkle.x <= 1 &&
+                rightAnkle.y >= 0 && rightAnkle.y <= 1;
+
+              if (isValid) {
+                const smoothed = smootherRef.current.smooth(rawLandmarks);
+                poseDataRef.current = {
+                  landmarks: smoothed,
+                  worldLandmarks: (result.worldLandmarks?.[0] as Landmark[]) ?? [],
+                };
+              } else {
+                // Точки вне диапазона — сбрасываем
+                smootherRef.current.reset();
+                poseDataRef.current = null;
+              }
             } else {
-              // Человек потерян из виду — сбрасываем сглаживатель
               smootherRef.current.reset();
-              landmarksRef.current = null;
+              poseDataRef.current = null;
             }
           }
         }
@@ -116,11 +125,9 @@ export function usePoseTracking(
     animationFrameRef.current = requestAnimationFrame(processFrame);
 
     return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
   }, [isReady, videoRef]);
 
-  return { landmarksRef, isReady, error };
+  return { poseDataRef, isReady, error };
 }

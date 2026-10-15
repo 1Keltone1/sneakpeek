@@ -1,9 +1,5 @@
 import type { Landmark } from '../types/landmarks';
 
-/**
- * Сглаживание одного числа по методу экспоненциального скользящего среднего (EMA).
- * Чем меньше alpha — тем сильнее сглаживание (но больше "инерция").
- */
 class SmoothedValue {
   private value: number | null = null;
   private readonly alpha: number;
@@ -17,6 +13,11 @@ class SmoothedValue {
       this.value = newValue;
     } else {
       this.value = this.alpha * newValue + (1 - this.alpha) * this.value;
+
+      // Если сглаженное значение вышло за разумные пределы — сбрасываем
+      if (this.value < -0.5 || this.value > 1.5) {
+        this.value = newValue;
+      }
     }
     return this.value;
   }
@@ -26,10 +27,6 @@ class SmoothedValue {
   }
 }
 
-/**
- * Сглаживатель для всех 33 ключевых точек позы.
- * Хранит отдельные SmoothedValue для x, y, z каждой точки.
- */
 export class PoseSmoother {
   private smoothers: Map<
     number,
