@@ -28,7 +28,7 @@ export function ShoeModel({
   const rotationRef = useRef<THREE.Group>(null);
   const { size } = useThree();
 
-  const { scene } = useGLTF('/models/nike.glb');
+  const { scene } = useGLTF(`${import.meta.env.BASE_URL}models/nike.glb`);
 
   const modelData = useMemo(() => {
     const clone = scene.clone(true);
@@ -174,4 +174,4 @@ export function ShoeModel({
   );
 }
 
-useGLTF.preload('/models/nike.glb');
+useGLTF.preload(`${import.meta.env.BASE_URL}models/nike.glb`);
