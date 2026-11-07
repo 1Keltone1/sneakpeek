@@ -1,5 +1,4 @@
 import { Canvas, useThree } from '@react-three/fiber';
-import { Environment } from '@react-three/drei';
 import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { ShoeModel } from './ShoeModel';
 import type { PoseData } from '../hooks/usePoseTracking';
@@ -11,7 +10,7 @@ interface ThreeSceneProps {
   poseDataRef: React.MutableRefObject<PoseData | null>;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   forcedRotation: number;
-  shoe: ShoeConfig; // ← добавили пропс
+  shoe: ShoeConfig;
 }
 
 export interface ThreeSceneHandle {
@@ -30,7 +29,6 @@ function CanvasGrabber({ onCanvas }: { onCanvas: (c: HTMLCanvasElement) => void 
 
 export const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
   function ThreeScene({ poseDataRef, videoRef, forcedRotation, shoe }, ref) {
-    // Деструктурировали shoe ^^^
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
     useImperativeHandle(ref, () => ({
@@ -51,27 +49,25 @@ export const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             }}
           />
 
-          <ambientLight intensity={0.5} />
+          <ambientLight intensity={1.5} />
           <directionalLight position={[5, 5, 5]} intensity={1} />
-          <Environment preset="sunset" />
+          <directionalLight position={[-5, 5, -5]} intensity={1} />
 
           <ShoeModel
             poseDataRef={poseDataRef}
             videoRef={videoRef}
             ankleIndex={POSE_LANDMARKS.RIGHT_ANKLE}
-            label="Правая нога"
             forcedRotation={forcedRotation}
-            shoe={shoe} // ← передаем пропс
-            mirrored
+            shoe={shoe}
           />
 
           <ShoeModel
             poseDataRef={poseDataRef}
             videoRef={videoRef}
             ankleIndex={POSE_LANDMARKS.LEFT_ANKLE}
-            label="Левая нога"
             forcedRotation={forcedRotation}
-            shoe={shoe} // ← передаем пропс
+            shoe={shoe}
+            mirrored
           />
         </Canvas>
       </div>
