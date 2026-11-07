@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import type { PoseData } from '../hooks/usePoseTracking';
+import type { ShoeConfig } from '../config/shoes';
 
 interface ShoeModelProps {
   poseDataRef: React.MutableRefObject<PoseData | null>;
@@ -10,11 +11,10 @@ interface ShoeModelProps {
   ankleIndex: number;
   label: string;
   forcedRotation: number;
+  shoe: ShoeConfig;
+  mirrored?: boolean;
 }
 
-const BASE_MODEL_SCALE = 500;
-// Опорная высота тела (нос → лодыжка) в пикселях,
-// при которой модель имеет «правильный» размер
 const BASE_BODY_HEIGHT = 400;
 
 export function ShoeModel({
@@ -23,40 +23,40 @@ export function ShoeModel({
   ankleIndex,
   label,
   forcedRotation,
+  shoe,
+  mirrored = false,
 }: ShoeModelProps) {
   const groupRef = useRef<THREE.Group>(null);
   const rotationRef = useRef<THREE.Group>(null);
   const { size } = useThree();
 
-  const { scene } = useGLTF(`${import.meta.env.BASE_URL}models/nike.glb`);
+  const modelPath = `${import.meta.env.BASE_URL}${shoe.modelPath}`;
+  const { scene } = useGLTF(modelPath);
 
-  const modelData = useMemo(() => {
+  const clonedScene = useMemo(() => {
     const clone = scene.clone(true);
     clone.traverse((child) => {
       if (child instanceof THREE.Mesh) {
-        if (child.material instanceof THREE.MeshStandardMaterial) {
+        if (Array.isArray(child.material)) {
+          child.material = child.material.map((m) => {
+            const newMat = m.clone();
+            newMat.side = THREE.DoubleSide;
+            newMat.needsUpdate = true;
+            return newMat;
+          });
+        } else if (child.material) {
           child.material = child.material.clone();
           child.material.side = THREE.DoubleSide;
+          child.material.needsUpdate = true;
         }
       }
     });
-
-    const box = new THREE.Box3().setFromObject(clone);
-    const center = box.getCenter(new THREE.Vector3());
-    const min = box.min;
-
-    const offset = {
-      x: -center.x * BASE_MODEL_SCALE,
-      y: -min.y * BASE_MODEL_SCALE,
-      z: -min.z * BASE_MODEL_SCALE,
-    };
-
-    return { clone, offset };
+    return clone;
   }, [scene]);
 
   useEffect(() => {
     return () => {
-      modelData.clone.traverse((child) => {
+      clonedScene.traverse((child) => {
         if (child instanceof THREE.Mesh) {
           child.geometry?.dispose();
           if (Array.isArray(child.material)) {
@@ -67,7 +67,7 @@ export function ShoeModel({
         }
       });
     };
-  }, [modelData]);
+  }, [clonedScene]);
 
   useFrame(() => {
     const poseData = poseDataRef.current;
@@ -91,7 +91,7 @@ export function ShoeModel({
     group.visible = true;
 
     // ============================
-    // ПОЗИЦИЯ — по лодыжке
+    // ПОЗИЦИЯ
     // ============================
     const rect = video.getBoundingClientRect();
     const videoWidth = video.videoWidth;
@@ -129,7 +129,7 @@ export function ShoeModel({
     group.position.set(x, y, z);
 
     // ============================
-    // МАСШТАБ — по высоте тела (нос → лодыжка)
+    // МАСШТАБ
     // ============================
     let scaleMultiplier = 1;
 
@@ -141,14 +141,12 @@ export function ShoeModel({
 
       scaleMultiplier = bodyHeight / BASE_BODY_HEIGHT;
       scaleMultiplier = Math.max(0.3, Math.min(3, scaleMultiplier));
-
-      console.log(`[${label}] bodyHeight:`, bodyHeight.toFixed(1), 'scale:', scaleMultiplier.toFixed(2));
     }
 
     group.scale.setScalar(scaleMultiplier);
 
     // ============================
-    // ОРИЕНТАЦИЯ — фиксированный поворот вокруг Y
+    // ОРИЕНТАЦИЯ (по сценарию)
     // ============================
     if (rotationGroup) {
       const angle = THREE.MathUtils.degToRad(forcedRotation);
@@ -159,19 +157,17 @@ export function ShoeModel({
   return (
     <group ref={groupRef}>
       <group ref={rotationRef}>
-        <primitive
-          object={modelData.clone}
-          scale={BASE_MODEL_SCALE}
-          position={[
-            modelData.offset.x,
-            modelData.offset.y - 55,
-            modelData.offset.z,
-          ]}
-          rotation={[Math.PI, Math.PI / 2, Math.PI]}
-        />
+        <group 
+          scale={[mirrored ? -1 : 1, 1, 1]} 
+          rotation={[0, Math.PI, 0]}
+        >
+          <primitive
+            object={clonedScene}
+            scale={shoe.scale}
+            position={[0, -60, 0]} 
+          />
+        </group>
       </group>
     </group>
   );
 }
-
-useGLTF.preload(`${import.meta.env.BASE_URL}models/nike.glb`);

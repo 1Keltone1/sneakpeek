@@ -1,14 +1,17 @@
 import { Canvas, useThree } from '@react-three/fiber';
+import { Environment } from '@react-three/drei';
 import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { ShoeModel } from './ShoeModel';
 import type { PoseData } from '../hooks/usePoseTracking';
 import { POSE_LANDMARKS } from '../types/landmarks';
+import type { ShoeConfig } from '../config/shoes';
 import './ThreeScene.css';
 
 interface ThreeSceneProps {
   poseDataRef: React.MutableRefObject<PoseData | null>;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   forcedRotation: number;
+  shoe: ShoeConfig; // ← добавили пропс
 }
 
 export interface ThreeSceneHandle {
@@ -26,7 +29,8 @@ function CanvasGrabber({ onCanvas }: { onCanvas: (c: HTMLCanvasElement) => void 
 }
 
 export const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
-  function ThreeScene({ poseDataRef, videoRef, forcedRotation }, ref) {
+  function ThreeScene({ poseDataRef, videoRef, forcedRotation, shoe }, ref) {
+    // Деструктурировали shoe ^^^
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
     useImperativeHandle(ref, () => ({
@@ -47,8 +51,9 @@ export const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             }}
           />
 
-          <ambientLight intensity={1.5} />
+          <ambientLight intensity={0.5} />
           <directionalLight position={[5, 5, 5]} intensity={1} />
+          <Environment preset="sunset" />
 
           <ShoeModel
             poseDataRef={poseDataRef}
@@ -56,6 +61,8 @@ export const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             ankleIndex={POSE_LANDMARKS.RIGHT_ANKLE}
             label="Правая нога"
             forcedRotation={forcedRotation}
+            shoe={shoe} // ← передаем пропс
+            mirrored
           />
 
           <ShoeModel
@@ -64,6 +71,7 @@ export const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             ankleIndex={POSE_LANDMARKS.LEFT_ANKLE}
             label="Левая нога"
             forcedRotation={forcedRotation}
+            shoe={shoe} // ← передаем пропс
           />
         </Canvas>
       </div>

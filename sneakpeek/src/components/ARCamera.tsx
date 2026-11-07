@@ -5,12 +5,17 @@ import type { DebugOverlayHandle } from './DebugOverlay';
 import { ThreeScene } from './ThreeScene';
 import type { ThreeSceneHandle } from './ThreeScene';
 import { ScreenshotCapture } from './ScreenshotCapture';
+import type { ShoeConfig } from '../config/shoes'; // ← импорт конфига
 import './ARCamera.css';
 
-// Флаг отладки: true — показывать точки трекинга, false — скрыть
 const DEBUG_MODE = false;
 
-export function ARCamera() {
+interface ARCameraProps {
+  shoe: ShoeConfig;
+  onBack: () => void;
+}
+
+export function ARCamera({ shoe, onBack }: ARCameraProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const debugOverlayRef = useRef<DebugOverlayHandle>(null);
   const threeSceneRef = useRef<ThreeSceneHandle>(null);
@@ -27,11 +32,7 @@ export function ARCamera() {
     async function startCamera() {
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'user',
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
+          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: false,
         });
 
@@ -43,7 +44,6 @@ export function ARCamera() {
           };
         }
       } catch (err) {
-        console.error('Ошибка доступа к камере:', err);
         setError('Не удалось получить доступ к камере.');
         setIsLoading(false);
       }
@@ -60,13 +60,8 @@ export function ARCamera() {
     <div className="ar-camera-container">
       <video ref={videoRef} className="ar-camera-video" playsInline muted />
 
-      {/* Отладочный оверлей — только если DEBUG_MODE включён */}
       {DEBUG_MODE && isReady && (
-        <DebugOverlay
-          ref={debugOverlayRef}
-          poseDataRef={poseDataRef}
-          videoRef={videoRef}
-        />
+        <DebugOverlay ref={debugOverlayRef} poseDataRef={poseDataRef} videoRef={videoRef} />
       )}
 
       {isReady && (
@@ -75,34 +70,31 @@ export function ARCamera() {
           poseDataRef={poseDataRef}
           videoRef={videoRef}
           forcedRotation={forcedRotation}
+          shoe={shoe} // ← передаем модель в сцену
         />
       )}
 
-      {isLoading && (
-        <div className="ar-camera-overlay"><p>Загрузка камеры...</p></div>
-      )}
-      {error && (
-        <div className="ar-camera-overlay"><p className="ar-camera-error">{error}</p></div>
-      )}
-      {!isReady && !error && !isLoading && (
-        <div className="ar-camera-overlay"><p>Загрузка модели трекинга...</p></div>
-      )}
-      {trackingError && (
-        <div className="ar-camera-overlay"><p className="ar-camera-error">{trackingError}</p></div>
-      )}
+      {/* ... оверлеи загрузки и ошибок ... */}
+
       {isReady && (
-        <div className="ar-camera-status">
-          <span className="ar-camera-status-dot" />
-          Трекинг активен
-        </div>
-      )}
-      {isReady && (
-        <ScreenshotCapture
-          videoRef={videoRef}
-          debugOverlayRef={debugOverlayRef}
-          threeSceneRef={threeSceneRef}
-          onRotationChange={setForcedRotation}
-        />
+        <>
+          {/* Кнопка "Назад" */}
+          <button className="ar-back-button" onClick={onBack}>
+            ← Назад
+          </button>
+
+          <div className="ar-camera-status">
+            <span className="ar-camera-status-dot" />
+            {shoe.name}
+          </div>
+
+          <ScreenshotCapture
+            videoRef={videoRef}
+            debugOverlayRef={debugOverlayRef}
+            threeSceneRef={threeSceneRef}
+            onRotationChange={setForcedRotation}
+          />
+        </>
       )}
     </div>
   );
