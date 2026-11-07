@@ -5,7 +5,7 @@ import type { DebugOverlayHandle } from './DebugOverlay';
 import { ThreeScene } from './ThreeScene';
 import type { ThreeSceneHandle } from './ThreeScene';
 import { ScreenshotCapture } from './ScreenshotCapture';
-import type { ShoeConfig } from '../config/shoes'; // ← импорт конфига
+import type { ShoeConfig } from '../config/shoes';
 import './ARCamera.css';
 
 const DEBUG_MODE = false;
@@ -32,7 +32,11 @@ export function ARCamera({ shoe, onBack }: ARCameraProps) {
     async function startCamera() {
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: {
+            facingMode: 'user',
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
           audio: false,
         });
 
@@ -44,6 +48,7 @@ export function ARCamera({ shoe, onBack }: ARCameraProps) {
           };
         }
       } catch (err) {
+        console.error('Ошибка доступа к камере:', err);
         setError('Не удалось получить доступ к камере.');
         setIsLoading(false);
       }
@@ -61,7 +66,11 @@ export function ARCamera({ shoe, onBack }: ARCameraProps) {
       <video ref={videoRef} className="ar-camera-video" playsInline muted />
 
       {DEBUG_MODE && isReady && (
-        <DebugOverlay ref={debugOverlayRef} poseDataRef={poseDataRef} videoRef={videoRef} />
+        <DebugOverlay
+          ref={debugOverlayRef}
+          poseDataRef={poseDataRef}
+          videoRef={videoRef}
+        />
       )}
 
       {isReady && (
@@ -70,15 +79,26 @@ export function ARCamera({ shoe, onBack }: ARCameraProps) {
           poseDataRef={poseDataRef}
           videoRef={videoRef}
           forcedRotation={forcedRotation}
-          shoe={shoe} // ← передаем модель в сцену
+          shoe={shoe}
         />
       )}
 
-      {/* ... оверлеи загрузки и ошибок ... */}
-
+      {/* Используем isLoading, error и trackingError, чтобы TypeScript не ругался */}
+      {isLoading && (
+        <div className="ar-camera-overlay"><p>Загрузка камеры...</p></div>
+      )}
+      {error && (
+        <div className="ar-camera-overlay"><p className="ar-camera-error">{error}</p></div>
+      )}
+      {!isReady && !error && !isLoading && (
+        <div className="ar-camera-overlay"><p>Загрузка модели трекинга...</p></div>
+      )}
+      {trackingError && (
+        <div className="ar-camera-overlay"><p className="ar-camera-error">{trackingError}</p></div>
+      )}
+      
       {isReady && (
         <>
-          {/* Кнопка "Назад" */}
           <button className="ar-back-button" onClick={onBack}>
             ← Назад
           </button>

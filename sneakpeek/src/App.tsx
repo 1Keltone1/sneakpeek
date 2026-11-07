@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { StartScreen } from './components/StartScreen';
 import { ARCamera } from './components/ARCamera';
-import { SHOES, type ShoeConfig } from './config/shoes';
+import { type ShoeConfig } from './config/shoes'; // Убрали SHOES из импорта
 import './App.css';
 
 function App() {
   const [selectedShoe, setSelectedShoe] = useState<ShoeConfig | null>(null);
 
-  // Если модель выбрана — показываем камеру, иначе — стартовый экран
   if (selectedShoe) {
     return (
       <div className="App">

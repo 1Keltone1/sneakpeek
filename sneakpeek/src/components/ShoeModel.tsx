@@ -9,7 +9,6 @@ interface ShoeModelProps {
   poseDataRef: React.MutableRefObject<PoseData | null>;
   videoRef: React.RefObject<HTMLVideoElement | null>;
   ankleIndex: number;
-  label: string;
   forcedRotation: number;
   shoe: ShoeConfig;
   mirrored?: boolean;
@@ -21,7 +20,6 @@ export function ShoeModel({
   poseDataRef,
   videoRef,
   ankleIndex,
-  label,
   forcedRotation,
   shoe,
   mirrored = false,
@@ -91,7 +89,7 @@ export function ShoeModel({
     group.visible = true;
 
     // ============================
-    // ПОЗИЦИЯ
+    // ПОЗИЦИЯ — по лодыжке
     // ============================
     const rect = video.getBoundingClientRect();
     const videoWidth = video.videoWidth;
@@ -129,7 +127,7 @@ export function ShoeModel({
     group.position.set(x, y, z);
 
     // ============================
-    // МАСШТАБ
+    // МАСШТАБ — по высоте тела (нос → лодыжка)
     // ============================
     let scaleMultiplier = 1;
 
@@ -146,7 +144,7 @@ export function ShoeModel({
     group.scale.setScalar(scaleMultiplier);
 
     // ============================
-    // ОРИЕНТАЦИЯ (по сценарию)
+    // ОРИЕНТАЦИЯ — поворот по сценарию
     // ============================
     if (rotationGroup) {
       const angle = THREE.MathUtils.degToRad(forcedRotation);
@@ -164,7 +162,7 @@ export function ShoeModel({
           <primitive
             object={clonedScene}
             scale={shoe.scale}
-            position={[0, -60, 0]} 
+            position={[0, -100, 0]}
           />
         </group>
       </group>
