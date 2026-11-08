@@ -154,16 +154,21 @@ export function ShoeModel({
 
   return (
     <group ref={groupRef}>
-      <group ref={rotationRef}>
-        <group 
-          scale={[mirrored ? -1 : 1, 1, 1]} 
-          rotation={[0, Math.PI, 0]}
-        >
-          <primitive
-            object={clonedScene}
-            scale={shoe.scale}
-            position={[0, -100, 0]}
-          />
+      <group position={[0, -50, 0]}>
+        
+        <group ref={rotationRef}>
+          
+          <group 
+            scale={[mirrored ? -1 : 1, 1, 1]} 
+            rotation={[0, Math.PI, 0]}
+          >
+            <group position={[0, 0, 15]}>
+              <primitive
+                object={clonedScene}
+                scale={shoe.scale}
+              />
+            </group>
+          </group>
         </group>
       </group>
     </group>

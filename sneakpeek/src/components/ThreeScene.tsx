@@ -59,6 +59,7 @@ export const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             ankleIndex={POSE_LANDMARKS.RIGHT_ANKLE}
             forcedRotation={forcedRotation}
             shoe={shoe}
+            mirrored
           />
 
           <ShoeModel
@@ -67,7 +68,6 @@ export const ThreeScene = forwardRef<ThreeSceneHandle, ThreeSceneProps>(
             ankleIndex={POSE_LANDMARKS.LEFT_ANKLE}
             forcedRotation={forcedRotation}
             shoe={shoe}
-            mirrored
           />
         </Canvas>
       </div>

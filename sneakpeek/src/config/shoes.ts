@@ -22,7 +22,7 @@ export const SHOES: ShoeConfig[] = [
     brand: 'Timberland',
     modelPath: 'models/boot.glb',
     image: 'pictures/boot.png', 
-    scale: 400, 
+    scale: 350, 
   },
   {
     id: 'harrison',
@@ -30,6 +30,6 @@ export const SHOES: ShoeConfig[] = [
     brand: 'Harrison',
     modelPath: 'models/harrison.glb',
     image: 'pictures/harrison.png', 
-    scale: 400, 
+    scale: 350, 
   },
 ];
