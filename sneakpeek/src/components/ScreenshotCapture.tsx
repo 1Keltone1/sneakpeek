@@ -15,8 +15,8 @@ type CaptureState = 'idle' | 'countdown' | 'done';
 
 const STEPS = [
   { rotation: 0, hint: 'Прямо' },
-  { rotation: 90, hint: 'Правый поворот' },
-  { rotation: -90, hint: 'Левый поворот' },
+  { rotation: 90, hint: 'Левый поворот' },
+  { rotation: -90, hint: 'Правый поворот' },
 ];
 
 const COUNTDOWN_SECONDS = 5;

@@ -13,6 +13,16 @@ export function StartScreen({ onSelect }: StartScreenProps) {
         <p>How does it look?</p>
       </div>
 
+      <details className="how-it-works">
+        <summary>Как это работает?</summary>
+        <div className="how-it-works-content">
+          <p><strong>Выберите нужную модель обуви.</strong> Затем зафиксируйте устройство и нажмите кнопку «Сделать скриншоты».</p>
+          <p>Начнется обратный отсчет (5 секунд) — за это время вам нужно отойти от устройства так, чтобы вы целиком поместились в кадр.</p>
+          <p>Первый снимок будет сделан в положении <strong>прямо</strong>. Затем повернитесь на 90 градусов <strong>влево</strong> и дождитесь второго снимка. После этого повернитесь <strong>вправо</strong> и дождитесь окончания отсчета.</p>
+          <p>Когда все три фотографии будут готовы, вы сможете скачать их и посмотреть результат.</p>
+        </div>
+      </details>
+
       <div className="shoe-grid">
         {SHOES.map((shoe) => {
           // Формируем правильный путь (учитывает BASE_URL для GitHub Pages)
