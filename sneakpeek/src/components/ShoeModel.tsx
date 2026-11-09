@@ -88,9 +88,7 @@ export function ShoeModel({
 
     group.visible = true;
 
-    // ============================
-    // ПОЗИЦИЯ — по лодыжке
-    // ============================
+    // ПОЗИЦИЯ
     const rect = video.getBoundingClientRect();
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
@@ -126,9 +124,7 @@ export function ShoeModel({
 
     group.position.set(x, y, z);
 
-    // ============================
-    // МАСШТАБ — по высоте тела (нос → лодыжка)
-    // ============================
+    // МАСШТАБ
     let scaleMultiplier = 1;
 
     const nose = lm[0];
@@ -143,9 +139,7 @@ export function ShoeModel({
 
     group.scale.setScalar(scaleMultiplier);
 
-    // ============================
-    // ОРИЕНТАЦИЯ — поворот по сценарию
-    // ============================
+    // ОРИЕНТАЦИЯ
     if (rotationGroup) {
       const angle = THREE.MathUtils.degToRad(forcedRotation);
       rotationGroup.rotation.y = angle;

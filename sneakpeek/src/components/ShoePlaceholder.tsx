@@ -5,8 +5,8 @@ import type { Landmark } from '../types/landmarks';
 
 interface ShoePlaceholderProps {
   landmarksRef: React.MutableRefObject<Landmark[] | null>;
-  landmarkIndex: number; // ← индекс точки (27 для левой, 28 для правой)
-  color: string; // ← цвет куба
+  landmarkIndex: number;
+  color: string;
 }
 
 export function ShoePlaceholder({
@@ -34,7 +34,6 @@ export function ShoePlaceholder({
 
     mesh.visible = true;
 
-    // Преобразуем нормализованные координаты (0..1) в экранные
     const x = (landmark.x - 0.5) * size.width;
     const y = -(landmark.y - 0.5) * size.height;
     const z = -landmark.z * 1000;

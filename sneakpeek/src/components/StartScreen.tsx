@@ -25,7 +25,6 @@ export function StartScreen({ onSelect }: StartScreenProps) {
 
       <div className="shoe-grid">
         {SHOES.map((shoe) => {
-          // Формируем правильный путь (учитывает BASE_URL для GitHub Pages)
           const imageUrl = `${import.meta.env.BASE_URL}${shoe.image}`;
 
           return (

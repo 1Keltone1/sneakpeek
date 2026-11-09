@@ -109,7 +109,6 @@ export function ScreenshotCapture({
     try {
       const threeCanvas = threeSceneRef.current?.getCanvas() ?? null;
 
-      // ВАЖНО: не передаём debugOverlayCanvas — точки не попадут на скриншот
       const dataUrl = captureFrame(video, null, threeCanvas);
       capturedRef.current.push(dataUrl);
       setScreenshots([...capturedRef.current]);

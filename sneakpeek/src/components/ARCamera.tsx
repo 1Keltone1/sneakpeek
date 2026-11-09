@@ -83,7 +83,6 @@ export function ARCamera({ shoe, onBack }: ARCameraProps) {
         />
       )}
 
-      {/* Используем isLoading, error и trackingError, чтобы TypeScript не ругался */}
       {isLoading && (
         <div className="ar-camera-overlay"><p>Загрузка камеры...</p></div>
       )}

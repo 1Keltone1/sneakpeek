@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StartScreen } from './components/StartScreen';
 import { ARCamera } from './components/ARCamera';
-import { type ShoeConfig } from './config/shoes'; // Убрали SHOES из импорта
+import { type ShoeConfig } from './config/shoes';
 import './App.css';
 
 function App() {
