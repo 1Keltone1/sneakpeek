@@ -18,8 +18,8 @@ export const SHOES: ShoeConfig[] = [
   },
   {
     id: 'boot',
-    name: 'Classic Boot',
-    brand: 'Timberland',
+    name: 'Hiking Boot',
+    brand: 'Caterpillar',
     modelPath: 'models/boot.glb',
     image: 'pictures/boot.png', 
     scale: 350, 
